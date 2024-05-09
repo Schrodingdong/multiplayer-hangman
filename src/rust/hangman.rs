@@ -1,8 +1,9 @@
 use std::io;
 
-fn revealCharInWord(c: char, w: &String, revealedWord: &String)-> String {
+fn revealCharInWord(c: char, w: &String, revealedWord: &String)-> (String, bool) {
     let mut ogCharIter = w.chars();
     let mut newRevealedWord = String::new();
+    let mut didReveal = false;
     for i in 0..revealedWord.len() {
         let ogWordChar = ogCharIter.next().unwrap();
         let currentRevealedWordChar = revealedWord.chars().nth(i).unwrap();
@@ -12,17 +13,18 @@ fn revealCharInWord(c: char, w: &String, revealedWord: &String)-> String {
         }else {
             if c == ogWordChar {
                 newRevealedWord.push(c);
+                didReveal = true;
             } else {
                 newRevealedWord.push('_');
             }
         }
         
     }
-    return newRevealedWord;
+    return (newRevealedWord, didReveal);
 }
 fn initRevealedWord(w: &String)-> String {
     let mut revealedWord = String::new();
-    for i in 0..w.len()-1 {
+    for i in 0..w.len() {
         revealedWord.push('_');
     }
     return revealedWord;
@@ -34,6 +36,20 @@ fn formatRevealedWord(revealedWord: &String)-> String {
         formattedRevealedWord.push(' ');
     }
     return formattedRevealedWord;
+}
+
+fn checkWordEquality(w1: &String, w2: &String)-> bool {
+    if w1.len() != w2.len(){
+        return false;
+    }
+    for i in 0..w1.len(){
+        let c1 = w1.chars().nth(i).unwrap();
+        let c2 = w2.chars().nth(i).unwrap();
+        if c1 != c2 {
+            return false
+        }
+    }
+    return true;
 }
 
 fn main() {
@@ -49,6 +65,7 @@ fn main() {
     io::stdin()
         .read_line(&mut wordToGuess)
         .expect("Failed to read the word");
+    wordToGuess.pop();
     revealedWord= initRevealedWord(&wordToGuess);
     println!("word : {}", formatRevealedWord(&revealedWord));
 
@@ -63,14 +80,11 @@ fn main() {
         let guessedChar = guess.chars().next().unwrap();
         // check
         let charIter = wordToGuess.chars();
-        revealedWord = revealCharInWord(guessedChar, &wordToGuess, &revealedWord);
+        let didReveal: bool;
+        (revealedWord, didReveal) = revealCharInWord(guessedChar, &wordToGuess, &revealedWord);
         println!("revealed word : {}", formatRevealedWord(&revealedWord));
-        tries += 1;
-    }
-
-    if !revealedWord.eq(&wordToGuess){
-        println!("lost");
-    } else {
-        println!("won");
+        if !didReveal {
+            tries += 1;
+        }
     }
 }
