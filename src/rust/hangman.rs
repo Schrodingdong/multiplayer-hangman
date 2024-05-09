@@ -1,5 +1,7 @@
 use std::io;
 
+const FORBIDDEN_CHARS: [char; 1]= [' '];
+
 fn revealCharInWord(c: char, w: &String, revealedWord: &String)-> (String, bool) {
     let mut ogCharIter = w.chars();
     let mut newRevealedWord = String::new();
@@ -25,7 +27,11 @@ fn revealCharInWord(c: char, w: &String, revealedWord: &String)-> (String, bool)
 fn initRevealedWord(w: &String)-> String {
     let mut revealedWord = String::new();
     for i in 0..w.len() {
-        revealedWord.push('_');
+        if w.chars().nth(i).unwrap() == ' ' {
+            revealedWord.push(' ');
+        } else {
+            revealedWord.push('_');
+        }
     }
     return revealedWord;
 }
@@ -78,6 +84,17 @@ fn main() {
             .read_line(&mut guess)
             .expect("Failed to read line");
         let guessedChar = guess.chars().next().unwrap();
+        // make sure its not a forbidden character
+        let mut isForbidden = false;
+        for forbiddenChar in FORBIDDEN_CHARS {
+            if guessedChar == forbiddenChar {
+                println!(">>> Forbidden character : {}", guessedChar);
+                isForbidden = true;
+            }
+        }
+        if isForbidden {
+            continue;
+        }
         // check
         let charIter = wordToGuess.chars();
         let didReveal: bool;
@@ -87,4 +104,14 @@ fn main() {
             tries += 1;
         }
     }
+
+    // win screen :
+        println!("\n\n===================================================================");
+    if revealedWord.eq(&wordToGuess) {
+        println!("You won !");
+    } else {
+        println!("You lost!");
+    }
+    println!("===================================================================");
+
 }
