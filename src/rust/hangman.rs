@@ -64,6 +64,7 @@ fn main() {
     let mut tries = 0;
     let mut wordToGuess = String::new();
     let mut revealedWord: String;
+    let mut revealedChars: Vec<char> = vec![];
     // ===================================================
 
     // get word to guess
@@ -83,7 +84,7 @@ fn main() {
         io::stdin()
             .read_line(&mut guess)
             .expect("Failed to read line");
-        let guessedChar = guess.chars().next().unwrap();
+        let guessedChar: char = guess.chars().next().unwrap();
         // make sure its not a forbidden character
         let mut isForbidden = false;
         for forbiddenChar in FORBIDDEN_CHARS {
@@ -95,6 +96,19 @@ fn main() {
         if isForbidden {
             continue;
         }
+
+        // make sure its not already revealed
+        let mut isAlreadyRevealed = false;
+        for revealedChar in &revealedChars {
+            if guessedChar == *revealedChar {
+                println!(">>> Character already guessed : {}", guessedChar);
+                isAlreadyRevealed = true;
+            }
+        }
+        if isAlreadyRevealed {
+            continue;
+        }
+
         // check
         let charIter = wordToGuess.chars();
         let didReveal: bool;
@@ -102,6 +116,8 @@ fn main() {
         println!("revealed word : {}", formatRevealedWord(&revealedWord));
         if !didReveal {
             tries += 1;
+        } else {
+            revealedChars.push(guessedChar);
         }
     }
 
