@@ -1,8 +1,8 @@
 """
     Things to implement :
-    - Handshake from client & server
-    - pass game state from one and another
-    - use the passed game state as a blueprint to update the current one
+    [x] - Handshake from client & server
+    [ ] - pass game state from one and another
+    [ ] - use the passed game state as a blueprint to update the current one
 """
 import asyncio
 import websockets
@@ -31,19 +31,41 @@ class PlayerDetails:
 def client(event = None, shared_data= None) :
     ip = shared_data['ip']
     async def handler():
-        is_connected = False
-        while True:
-            if not is_connected :
-                async with websockets.connect('ws://'+ip) as websocket:
-                    # establish connection
-                    await websocket.send('{"join": "join", "player_name": "hamza"}')
-                    # get the response
-                    data = await websocket.recv()
-                    shared_data = json.loads(data)
+        async with websockets.connect('ws://'+ip) as websocket:
+            is_connected = False
+            while True:
+                if not is_connected :
+                    await websocket.send(json.dumps(
+                        {
+                            "HDSHK": "SYN"
+                        }
+                    ))
+                    ack_response = await websocket.recv()
+                    ack_response = json.loads(ack_response)
+                    await websocket.send(json.dumps(
+                        {
+                            "HDSHK": "ACK", 
+                            "player_details": {
+                                "player_name": "hamza"
+                            }
+                        }
+                    )) # Connection established
                     is_connected = True
-            else :
-                # do the game
-                event.set()
+                    print(">> Successfuly connected !")
+                else:
+                    # print the layout
+
+                    # get the guessed char
+                    guessed_char = input("> What is your guess ? ")
+
+                    # process it locally
+
+                    # update game state
+
+                    # send game state
+
+                    # wait for ack on game state update from server
+
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
@@ -64,7 +86,7 @@ def server(event = None, shared_data = None):
                         {
                             "HDSHK": "SYN-ACK"
                         }
-                    )) # to send shared data
+                    )) 
                     handshake_response = await websocket.recv()
                     handshake_response = json.loads(handshake_response)
                     if handshake_response['HDSHK'] == "ACK":
@@ -75,17 +97,16 @@ def server(event = None, shared_data = None):
                         print(player_details.to_string())
                         connection_pool.append(player_details)
                         continue
+            else :
+                print("running game ...")
+                # print the layout
 
+                # wait for the updated game state from the other
 
-        # check if the player has joined
-        # if data_dic['join'] == JOIN :
-        #     print(f"player '{data_dic['player_name']}' has joined !")
-            # await websocket.send(json.dumps(shared_data)) # to send shared data
-            # event.set() # for starting the game
-        
-        # The game started
-        # else :
-        #     gameState = json.loads(data_dic['gameState'])
+                # update server local game state
+
+                # send ack to update
+
     
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
@@ -99,4 +120,4 @@ if __name__ == "__main__":
     if x == 0 :
         server()
     elif x == 1 :
-        client()
+        client(shared_data={'ip' : 'localhost:8000'})
