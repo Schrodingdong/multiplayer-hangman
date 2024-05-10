@@ -28,11 +28,13 @@ class PlayerDetails:
 
         
 
-def client(event = None, shared_data= None) :
+def client(shared_data) :
     ip = shared_data['ip']
     async def handler():
+        client_game_state = shared_data['game_state']
         async with websockets.connect('ws://'+ip) as websocket:
             is_connected = False
+            error = ""
             while True:
                 if not is_connected :
                     await websocket.send(json.dumps(
@@ -40,8 +42,8 @@ def client(event = None, shared_data= None) :
                             "HDSHK": "SYN"
                         }
                     ))
-                    ack_response = await websocket.recv()
-                    ack_response = json.loads(ack_response)
+                    syn_ack_response = await websocket.recv()
+                    syn_ack_response = json.loads(syn_ack_response)
                     await websocket.send(json.dumps(
                         {
                             "HDSHK": "ACK", 
@@ -50,41 +52,71 @@ def client(event = None, shared_data= None) :
                             }
                         }
                     )) # Connection established
+                    client_game_state.copy_game_state(
+                        json.loads(syn_ack_response['game_state'])
+                    ) # load game state from server
                     is_connected = True
                     print(">> Successfuly connected !")
                 else:
                     # print the layout
+                    clear()
+                    print_hanged_man(0)
+                    print("Word :", format_revealed_word(client_game_state.revealed_word))
+                    if error != "" :
+                        print(error)
+                        error = ""
 
                     # get the guessed char
-                    guessed_char = input("> What is your guess ? ")
+                    guess = input("What is your guess ? (guesses remaining : {})\n-> ".format(MAX_TRIES - client_game_state.tries))
 
-                    # process it locally
-
+                    # Verify input
+                    is_input_valid,error = check_input(guess, FORBIDDEN_CHARS, client_game_state.revealed_chars)
                     # update game state
+                    if is_input_valid :
+                        # Always get the first element
+                        guess = process_input(guess)
+                        # match with the word to guess
+                        did_reveal = False
+                        updated_revealed_word, did_reveal = reveal_char_in_word(guess, client_game_state.word_to_guess, client_game_state.revealed_word)
+                        client_game_state.revealed_word = updated_revealed_word
+                        if not did_reveal:
+                            client_game_state.tries += 1
+                        else:
+                            client_game_state.revealed_chars.append(guess)
 
                     # send game state
+                    await websocket.send(json.dumps(
+                        {
+                            "game_state": json.dumps(client_game_state.get_game_state_dic())
+                        }
+                    )) 
 
                     # wait for ack on game state update from server
+                    game_state_update_response = await websocket.recv()
+                    game_state_update_response = json.loads(game_state_update_response)
+                    if game_state_update_response['UPDATE_STATUS'] != "ACK":
+                        break
 
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     asyncio.get_event_loop().run_until_complete(handler())
 
-def server(event = None, shared_data = None): 
+def server(shared_data): 
     async def handler(websocket, path):
+        server_game_state = shared_data['game_state']
         while True:
-            # pre-process incomming data 
-            raw_data = await websocket.recv()
-            data_dic = json.loads(raw_data)
-
-
             # Do handshake :
-            if len(connection_pool) >= 0 :
+            print(connection_pool)
+            if len(connection_pool) == 0 :
+                # pre-process incomming data 
+                raw_data = await websocket.recv()
+                data_dic = json.loads(raw_data)
                 if data_dic['HDSHK'] == "SYN":
                     await websocket.send(json.dumps(
                         {
-                            "HDSHK": "SYN-ACK"
+                            "HDSHK": "SYN-ACK",
+                            "game_state": json.dumps(server_game_state.get_game_state_dic())
                         }
                     )) 
                     handshake_response = await websocket.recv()
@@ -100,12 +132,27 @@ def server(event = None, shared_data = None):
             else :
                 print("running game ...")
                 # print the layout
+                clear()
+                print_hanged_man(0)
+                print("Word :", format_revealed_word(server_game_state.revealed_word))
 
                 # wait for the updated game state from the other
+                updated_game_state_response = await websocket.recv()
+                updated_game_state_response = json.loads(updated_game_state_response)['game_state']
+                updated_game_state_response = json.loads(updated_game_state_response)
+                print(type(updated_game_state_response), " ", updated_game_state_response)
 
                 # update server local game state
+                server_game_state.copy_game_state(
+                    updated_game_state_response
+                )
 
                 # send ack to update
+                await websocket.send(json.dumps(
+                    {
+                        "UPDATE_STATUS": "ACK"
+                    }
+                )) 
 
     
     loop = asyncio.new_event_loop()

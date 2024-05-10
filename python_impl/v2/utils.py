@@ -87,7 +87,7 @@ def print_hanged_man(step):
                 |    
             ========="""
     }
-    #print(hangman_stages.get(step, "Invalid step"))
+    print(hangman_stages.get(step, "Invalid step"))
     return hangman_stages.get(step, "Invalid step")
 
 def reveal_char_in_word(c, w, revealed_word):

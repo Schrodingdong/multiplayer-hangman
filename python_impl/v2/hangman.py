@@ -15,7 +15,7 @@ def start_game(event, shared_data) :
     clear()
     print_hanged_man(tries)
     while tries < MAX_TRIES and not revealed_word == word_to_guess:
-        print("Revealed word :", format_revealed_word(revealed_word))
+        print("Word :", format_revealed_word(revealed_word))
         if error != "" :
             print(error)
             error = ""
