@@ -73,11 +73,14 @@ fn main() {
         .read_line(&mut wordToGuess)
         .expect("Failed to read the word");
     wordToGuess.pop();
+    wordToGuess.pop();
+    wordToGuess = "hanae zwina bzaf".to_string();
     revealedWord= initRevealedWord(&wordToGuess);
     println!("word : {}", formatRevealedWord(&revealedWord));
 
 
     while tries < maxTries && !revealedWord.eq(&wordToGuess){
+        println!("--------------------------------------");
         // take input
         println!("What is your guess ? (guesses remaining : {})", maxTries-tries);
         let mut guess = String::new();
@@ -113,7 +116,7 @@ fn main() {
         let charIter = wordToGuess.chars();
         let didReveal: bool;
         (revealedWord, didReveal) = revealCharInWord(guessedChar, &wordToGuess, &revealedWord);
-        println!("revealed word : {}", formatRevealedWord(&revealedWord));
+        println!("Revealed word : {}", formatRevealedWord(&revealedWord));
         if !didReveal {
             tries += 1;
         } else {
@@ -122,12 +125,12 @@ fn main() {
     }
 
     // win screen :
-        println!("\n\n===================================================================");
+        println!("\n\n========================================================");
     if revealedWord.eq(&wordToGuess) {
         println!("You won !");
     } else {
         println!("You lost!");
     }
-    println!("===================================================================");
+    println!("========================================================");
 
 }
