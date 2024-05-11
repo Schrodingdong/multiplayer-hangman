@@ -9,6 +9,11 @@ import asyncio
 import websockets
 import json
 from utils import * 
+import requests
+
+def get_public_ip():
+    ip = requests.get('https://api.ipify.org').content.decode('utf8')
+    return ip
 
 connection_pool = []
 
@@ -177,8 +182,9 @@ def server(shared_data):
     
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    start_server = websockets.serve(handler, "localhost", 8000)
+    start_server = websockets.serve(handler, "", 8000)
     asyncio.get_event_loop().run_until_complete(start_server)
-    print("\nWaiting for players ...")
+    print("\n> Your IP to share :", get_public_ip())
+    print("> Waiting for players ...")
     asyncio.get_event_loop().run_forever() # on each hit of the ws, the handler() is going to get called (psspss)
   

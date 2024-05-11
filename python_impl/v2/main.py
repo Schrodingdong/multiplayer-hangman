@@ -1,7 +1,7 @@
 import threading
 import hangman
 from utils import clear, print_hangman_title, print_menu, init_revealed_word
-from httpClientServer import client, server
+from httpClientServer import * 
 
 
 current_turn = 0 # 0 being the host, 1 being the other
@@ -53,7 +53,7 @@ def main():
     print("======================================================")
     print_menu()
     choice = int(input("> your choice : "))
-    player_name = input("\n> Enter your username : ")
+    player_name = input("> Enter your username : ")
     game_state.set_player_name(player_name)
 
 
@@ -66,9 +66,10 @@ def main():
         }
         server(shared_data)
     elif choice == 2 :
+        ip = input("> Enter host ip : ")
         shared_data = {
             'game_state': game_state,
-            'ip': 'localhost:8000'
+            'ip': ip
         }
         client(shared_data)
 
