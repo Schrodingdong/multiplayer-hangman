@@ -1,3 +1,4 @@
 # Byte-compiled / optimized / DLL files
+.vscode
 __pycache__
 python_impl/v1
