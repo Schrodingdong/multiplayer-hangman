@@ -1,8 +1,9 @@
 """
     Things to implement :
     [x] - Handshake from client & server
-    [ ] - pass game state from one and another
-    [ ] - use the passed game state as a blueprint to update the current one
+    [x] - pass game state from one and another
+    [x] - use the passed game state as a blueprint to update the current one
+    [ ] - make sure to detect the disconnection of the other player and handle it properly
 """
 import asyncio
 import websockets
@@ -58,6 +59,8 @@ def client(shared_data) :
                     is_connected = True
                     print(">> Successfuly connected !")
                 else:
+                    if client_game_state.tries >= MAX_TRIES or client_game_state.revealed_word == client_game_state.word_to_guess :
+                        break
                     # print the layout
                     clear()
                     print_hanged_man(0)
@@ -95,7 +98,16 @@ def client(shared_data) :
                     game_state_update_response = await websocket.recv()
                     game_state_update_response = json.loads(game_state_update_response)
                     if game_state_update_response['UPDATE_STATUS'] != "ACK":
-                        break
+                        print("ERROR : problem status issue")
+                        return
+                
+            # win screen :
+            print("\n\n========================================================")
+            if client_game_state.revealed_word == client_game_state.word_to_guess:
+                print("You won :D !")
+            else:
+                print("You lost :((")
+            print("========================================================")
 
 
     loop = asyncio.new_event_loop()
@@ -105,6 +117,7 @@ def client(shared_data) :
 def server(shared_data): 
     async def handler(websocket, path):
         server_game_state = shared_data['game_state']
+        opponent_name = ""
         while True:
             # Do handshake :
             print(connection_pool)
@@ -130,7 +143,8 @@ def server(shared_data):
                         connection_pool.append(player_details)
                         continue
             else :
-                print("running game ...")
+                if server_game_state.tries >= MAX_TRIES or server_game_state.revealed_word == server_game_state.word_to_guess :
+                    break
                 # print the layout
                 clear()
                 print_hanged_man(0)
@@ -140,7 +154,6 @@ def server(shared_data):
                 updated_game_state_response = await websocket.recv()
                 updated_game_state_response = json.loads(updated_game_state_response)['game_state']
                 updated_game_state_response = json.loads(updated_game_state_response)
-                print(type(updated_game_state_response), " ", updated_game_state_response)
 
                 # update server local game state
                 server_game_state.copy_game_state(
@@ -153,6 +166,13 @@ def server(shared_data):
                         "UPDATE_STATUS": "ACK"
                     }
                 )) 
+        # win screen :
+        print("\n\n========================================================")
+        if server_game_state.revealed_word == server_game_state.word_to_guess:
+            print(f"{connection_pool[0].player_name} won :D !")
+        else:
+            print(f"{connection_pool[0].player_name} lost :((")
+        print("========================================================")
 
     
     loop = asyncio.new_event_loop()
@@ -162,9 +182,3 @@ def server(shared_data):
     print("\nWaiting for players ...")
     asyncio.get_event_loop().run_forever() # on each hit of the ws, the handler() is going to get called (psspss)
   
-if __name__ == "__main__":
-    x = int(input("0: server, 1: client ? "))
-    if x == 0 :
-        server()
-    elif x == 1 :
-        client(shared_data={'ip' : 'localhost:8000'})
