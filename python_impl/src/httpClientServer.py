@@ -121,7 +121,6 @@ def server(shared_data):
         opponent_name = ""
         while True:
             # Do handshake :
-            print(connection_pool)
             if len(connection_pool) == 0 :
                 # pre-process incomming data 
                 raw_data = await websocket.recv()
@@ -140,7 +139,6 @@ def server(shared_data):
                         # Get player details :
                         player_details = PlayerDetails()
                         player_details.set_player_details(handshake_response['player_details'])
-                        print(player_details.to_string())
                         connection_pool.append(player_details)
                         continue
             else :
