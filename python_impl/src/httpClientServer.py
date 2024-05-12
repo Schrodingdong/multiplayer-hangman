@@ -9,11 +9,6 @@ import asyncio
 import websockets
 import json
 from utils import * 
-import requests
-
-def get_public_ip():
-    ip = requests.get('https://api.ipify.org').content.decode('utf8')
-    return ip
 
 connection_pool = []
 
@@ -38,7 +33,8 @@ def client(shared_data) :
     ip = shared_data['ip']
     async def handler():
         client_game_state = shared_data['game_state']
-        async with websockets.connect('ws://'+ip) as websocket:
+        print(f"the ip is :{ip}")
+        async with websockets.connect('wss://'+ip) as websocket:
             is_connected = False
             error = ""
             while True:
@@ -184,7 +180,7 @@ def server(shared_data):
     asyncio.set_event_loop(loop)
     start_server = websockets.serve(handler, "localhost", 8000)
     asyncio.get_event_loop().run_until_complete(start_server)
-    print("\n> Your IP to share :", get_public_ip())
+    print("> From the ngrok process, share the adress with your friend without the xxx://")
     print("> Waiting for players ...")
     asyncio.get_event_loop().run_forever() # on each hit of the ws, the handler() is going to get called (psspss)
   

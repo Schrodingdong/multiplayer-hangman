@@ -66,7 +66,7 @@ def main():
         }
         server(shared_data)
     elif choice == 2 :
-        ip = input("> Enter host ip : ")
+        ip = input("> Enter host ip (without xxxx://) : ")
         shared_data = {
             'game_state': game_state,
             'ip': ip

@@ -2,20 +2,34 @@
 A simple Hang man implementation in ~~Rust~~ Python
 
 ## How run it ?
-- make sure to have python  & pip installed
-- install dependencies in requirements.txt
+### directly
+```bash
+./hangman.ps1
 ```
+### Manually
+- make sure to have ngrok, python & pip installed
+- install dependencies in requirements.txt
+```bash
 pip install -r ./requirements.txt
 ```
 - run the main script
-```
+```bash
 python ./python_impl/src/main.py
 ```
+- if you are hosting : start ngrok (DONT FORGET TO `ngrok config ....` FOR CONNECTION TOKEN)
+```bash
+ngrok http 8000 
+```
+
 
 ## Dependencies
-pip modules to be installed :
+### Ngrok 
+install ngrok from here : [ngrok.com](https://ngrok.com)
+### Python modules
+modules to be installed :
 - websockets
 - requests
+
 
 ## Caracteristics
 - Only for 2 people
