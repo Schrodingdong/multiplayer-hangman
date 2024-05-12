@@ -18,8 +18,8 @@ if ($choice -eq "1") {
     Start-Process -FilePath "cmd.exe" -ArgumentList "/c ngrok http 8000"
 }
 
-# start application
-python .\python_impl\src\main.py
-
 # Install pip dependencies
 pip install -r ./requirements.txt
+
+# start application
+python .\python_impl\src\main.py
