@@ -50,7 +50,7 @@ def client(shared_data) :
                         {
                             "HDSHK": "ACK", 
                             "player_details": {
-                                "player_name": "hamza"
+                                "player_name": shared_data['game_state'].player_name
                             }
                         }
                     )) # Connection established
@@ -64,7 +64,7 @@ def client(shared_data) :
                         break
                     # print the layout
                     clear()
-                    print_hanged_man(0)
+                    print_hanged_man(client_game_state.tries)
                     print("Word :", format_revealed_word(client_game_state.revealed_word))
                     if error != "" :
                         print(error)
@@ -148,7 +148,7 @@ def server(shared_data):
                     break
                 # print the layout
                 clear()
-                print_hanged_man(0)
+                print_hanged_man(server_game_state.tries)
                 print("Word :", format_revealed_word(server_game_state.revealed_word))
 
                 # wait for the updated game state from the other
