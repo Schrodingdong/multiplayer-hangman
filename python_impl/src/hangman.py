@@ -117,11 +117,6 @@ class Hangman:
 
     async def game_loop(self):
         websocket = self.websocket
-        if self.game_state.is_client :
-            guesser_to_check = PLAYER_ID
-        elif self.game_state.is_host :
-            guesser_to_check = HOST_ID 
-        
         error = ""
         # Game Loop : 
         print(self.game_state)
