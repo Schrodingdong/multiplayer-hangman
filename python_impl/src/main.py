@@ -34,6 +34,12 @@ class GameState:
         self.revealed_word  = game_state_dic['revealed_word']
         self.revealed_chars = game_state_dic['revealed_chars']
 
+    def reset_game_state(self, word_to_guess):
+        self.tries = 0
+        self.set_word_to_guess(word_to_guess)
+        self.revealed_chars = []
+
+
     def get_game_state_dic(self):
         return {
             "player_name"   : self.player_name,

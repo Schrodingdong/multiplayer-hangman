@@ -67,7 +67,7 @@ def client(shared_data) :
                     else :
                         # define the word
                         word_to_guess = input("> Enter the word to guess : ")
-                        client_game_state.set_word_to_guess(word_to_guess)
+                        client_game_state.reset_game_state(word_to_guess)
                         # send the game state
                         await websocket.send(json.dumps(
                             {
@@ -238,14 +238,13 @@ def server(shared_data):
                 if server_game_state.guesser == PLAYER_ID :
                     # define the word
                     word_to_guess = input("> Enter the word to guess : ")
-                    server_game_state.set_word_to_guess(word_to_guess)
+                    server_game_state.reset_game_state(word_to_guess)
                     # send the game state
                     await websocket.send(json.dumps(
                         {
                             "game_state": json.dumps(server_game_state.get_game_state_dic())
                         }
                     )) 
-                    print("huh")
                 else :
                     # Wait for receiving the gamestate
                     game_state_init = await websocket.recv()
@@ -359,9 +358,7 @@ def server(shared_data):
                         print("Do you accept ? y/n")
                         rematch_response = input("> ")
                         if rematch_response.lower() == "y":
-                            print(server_game_state.guesser)
                             server_game_state.swap_guesser()
-                            print(server_game_state.guesser)
                             await websocket.send(json.dumps(
                                 {
                                     "rematch": True,

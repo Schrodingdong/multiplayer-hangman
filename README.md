@@ -5,7 +5,11 @@ A simple Hang man implementation in ~~Rust~~ Python
 ### directly
 ```bash
 ./hangman.ps1
+./hangman.bat
+./hangman.sh
 ```
+
+Make sure to set $NGROK_TOKEN if using linux
 ### Manually
 - make sure to have ngrok, python & pip installed
 - install dependencies in requirements.txt

@@ -8,7 +8,10 @@ HOST_ID = "HOST"
 PLAYER_ID = "PLAYER"
 
 def clear():
-    os.system('cls')
+    try:
+        os.system('cls')
+    except:
+        os.system('clear')
 
 def print_hangman_title():
     print("""

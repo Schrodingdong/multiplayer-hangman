@@ -14,6 +14,8 @@ $choice = Read-Host "Select an option (1 or 2):
 
 # Validate the user input
 if ($choice -eq "1") {
+    # Check if ngrok is installed
+    # if not install it
     # start ngrok in a new terminal window
     Start-Process -FilePath "cmd.exe" -ArgumentList "/c ngrok http 8000"
 }
