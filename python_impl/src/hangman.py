@@ -1,48 +1,231 @@
 from utils import *
+import asyncio
+import websockets
+import json
 
-def start_game(event, shared_data) :
-    # Start the game only when we are connected
-    event.wait()  
+class GameState:
+    def __init__(self, player_name="anon", word_to_guess = "word", is_role="") -> None:
+        self.player_name = player_name
+        self.tries = 0
+        self.word_to_guess = word_to_guess 
+        self.revealed_word = init_revealed_word(self.word_to_guess)
+        self.revealed_chars = []
+        self.guesser = PLAYER_ID
+        if is_role == IS_CLIENT :
+            self.is_client = True
+            self.is_host = False
+        elif is_role == IS_HOST :
+            self.is_host = True
+            self.is_client = False
+        else :
+            raise Exception("is_role param needs to be specified : IS_CLIENT or IS_HOST")
+    
 
-    # VARIABLES =========================================
-    tries = shared_data['gameState']['tries']
-    word_to_guess = shared_data['gameState']['word_to_guess']
-    revealed_word = shared_data['gameState']['revealed_word']
-    revealed_chars = shared_data['gameState']['revealed_chars']
-    error = ""
-    # ===================================================
+    def set_player_name(self, player_name):
+        self.player_name = player_name
 
-    clear()
-    print_hanged_man(tries)
-    while tries < MAX_TRIES and not revealed_word == word_to_guess:
-        print("Word :", format_revealed_word(revealed_word))
-        if error != "" :
-            print(error)
-            error = ""
+    def swap_guesser(self):
+        if self.guesser == HOST_ID :
+            self.guesser = PLAYER_ID
+        elif self.guesser == PLAYER_ID :
+            self.guesser = HOST_ID
+    
+    
+    def set_word_to_guess(self, word_to_guess): 
+        self.word_to_guess = word_to_guess 
+        self.revealed_word = init_revealed_word(self.word_to_guess)
+    
+    def copy_game_state(self, game_state_dic):
+        self.tries          = game_state_dic['tries']
+        self.word_to_guess  = game_state_dic['word_to_guess']
+        self.revealed_word  = game_state_dic['revealed_word']
+        self.revealed_chars = game_state_dic['revealed_chars']
 
-        # take input
-        print("What is your guess ? (guesses remaining : {})".format(MAX_TRIES - tries))
-        guess = input()
+    def reset_game_state(self, word_to_guess):
+        self.tries = 0
+        self.set_word_to_guess(word_to_guess)
+        self.revealed_chars = []
 
-        # Verify input
-        is_input_valid,error = check_input(guess, FORBIDDEN_CHARS, revealed_chars)
-        if is_input_valid :
-            # Always get the first element
-            guess = process_input(guess)
-            # match with the word to guess
-            did_reveal = False
-            revealed_word, did_reveal = reveal_char_in_word(guess, word_to_guess, revealed_word)
-            if not did_reveal:
-                tries += 1
-            else:
-                revealed_chars.append(guess)
-        #clear()
-        print_hanged_man(tries)
 
-    # win screen :
-    print("\n\n========================================================")
-    if revealed_word == word_to_guess:
-        print("You won :D !")
-    else:
-        print("You lost :((")
-    print("========================================================")
+    def get_game_state_dic(self):
+        return {
+            "player_name"   : self.player_name,
+            "tries"         : self.tries,
+            "word_to_guess" : self.word_to_guess,
+            "revealed_word" : self.revealed_word,
+            "revealed_chars": self.revealed_chars
+        }
+    
+
+
+class Hangman:
+    def __init__(self, game_state, websocket) -> None:
+        self.game_state = game_state
+        self.websocket = websocket
+    
+    async def init_game(self):
+        websocket = self.websocket
+        if self.game_state.is_client :
+            guesser_to_check = PLAYER_ID
+        elif self.game_state.is_host :
+            guesser_to_check = HOST_ID 
+
+        # Init the game_state
+        if self.game_state.guesser == guesser_to_check:
+            # Wait for receiving the gamestate
+            game_state_init = await websocket.recv()
+            self.game_state.copy_game_state(json.loads(
+                json.loads(game_state_init)["game_state"]
+            ))
+        else :
+            # define the word
+            word_to_guess = input("> Enter the word to guess : ")
+            self.game_state.reset_game_state(word_to_guess)
+            # send the game state
+            await websocket.send(json.dumps(
+                {
+                    "game_state": json.dumps(self.game_state.get_game_state_dic())
+                }
+            )) 
+
+
+    async def game_loop(self):
+        websocket = self.websocket
+        if self.game_state.is_client :
+            guesser_to_check = PLAYER_ID
+        elif self.game_state.is_host :
+            guesser_to_check = HOST_ID 
+        
+        error = ""
+        # Game Loop : 
+        print(self.game_state)
+        while self.game_state.tries < MAX_TRIES and self.game_state.revealed_word != self.game_state.word_to_guess:
+            # Be the one to guess
+            if self.game_state.guesser == guesser_to_check  :
+                # print the layout
+                clear()
+                print_hanged_man(self.game_state.tries)
+                print("Word :", format_revealed_word(self.game_state.revealed_word))
+                if error != "" :
+                    print(error)
+                    error = ""
+
+                # get the guessed char
+                guess = input("What is your guess ? (guesses remaining : {})\n-> ".format(MAX_TRIES - self.game_state.tries))
+
+                # Verify input
+                is_input_valid,error = check_input(guess, FORBIDDEN_CHARS, self.game_state.revealed_chars)
+                # update game state
+                if is_input_valid :
+                    # Always get the first element
+                    guess = process_input(guess)
+                    # match with the word to guess
+                    did_reveal = False
+                    updated_revealed_word, did_reveal = reveal_char_in_word(guess, self.game_state.word_to_guess, self.game_state.revealed_word)
+                    self.game_state.revealed_word = updated_revealed_word
+                    if not did_reveal:
+                        self.game_state.tries += 1
+                    else:
+                        self.game_state.revealed_chars.append(guess)
+
+                # send game state
+                await websocket.send(json.dumps(
+                    {
+                        "game_state": json.dumps(self.game_state.get_game_state_dic())
+                    }
+                )) 
+
+                # wait for ack on game state update from server
+                game_state_update_response = await websocket.recv()
+                game_state_update_response = json.loads(game_state_update_response)
+                if game_state_update_response['UPDATE_STATUS'] != "ACK":
+                    print("ERROR : problem status issue")
+                    return
+            else :
+                # Be the one to set the word to guess
+                if self.game_state.tries >= MAX_TRIES or self.game_state.revealed_word == self.game_state.word_to_guess :
+                    break
+                # print the layout
+                clear()
+                print_hanged_man(self.game_state.tries)
+                print("Word to guess :", self.game_state.word_to_guess)
+                print("Word :", format_revealed_word(self.game_state.revealed_word))
+
+                # wait for the updated game state from the other
+                updated_game_state_response = await websocket.recv()
+                updated_game_state_response = json.loads(updated_game_state_response)['game_state']
+                updated_game_state_response = json.loads(updated_game_state_response)
+
+                # update server local game state
+                self.game_state.copy_game_state(
+                    updated_game_state_response
+                )
+
+                # send ack to update
+                await websocket.send(json.dumps(
+                    {
+                        "UPDATE_STATUS": "ACK"
+                    }
+                )) 
+        return self.game_state.revealed_word == self.game_state.word_to_guess
+
+    async def rematch(self):
+        websocket = self.websocket
+        if self.game_state.is_client :
+            guesser_to_check = PLAYER_ID
+        elif self.game_state.is_host :
+            guesser_to_check = HOST_ID 
+
+        # Rematch request if you are a guesser
+        if self.game_state.guesser == guesser_to_check : 
+            print("Do you wish for a rematch ? y/n")
+            rematch = input(">")
+            if rematch.lower() == 'n':
+                await websocket.send(json.dumps(
+                    {
+                        "rematch": False,
+                        "player_name": self.game_state.guesser
+                    }
+                )) 
+                return False
+            # Send the rematch request to the other 
+            await websocket.send(json.dumps(
+                {
+                    "rematch": True,
+                    "player_name": self.game_state.guesser
+                }
+            )) 
+            # wait for the rematch response
+            rematch_response = await websocket.recv()
+            continue_game = json.loads(rematch_response)['rematch']
+            if continue_game :
+                self.game_state.swap_guesser()
+                return True
+        else :
+            print("Waiting for rematch request ...")
+            rematch_request = await websocket.recv()
+            rematch = json.loads(rematch_request)['rematch']
+            player_name = json.loads(rematch_request)['player_name']
+            if rematch :
+                print(f"Player {player_name} requested a rematch !!")
+                print("Do you accept ? y/n")
+                rematch_response = input("> ")
+                if rematch_response.lower() == "y":
+                    self.game_state.swap_guesser()
+                    await websocket.send(json.dumps(
+                        {
+                            "rematch": True,
+                            "player_name": self.game_state.guesser
+                        }
+                    )) 
+                else :
+                    await websocket.send(json.dumps(
+                        {
+                            "rematch": False,
+                            "player_name": self.game_state.guesser
+                        }
+                    )) 
+                return True
+            else :
+                print("no rematch womp womp :/")
+                return False

@@ -7,6 +7,11 @@ FORBIDDEN_CHARS = [' ', '\n']
 HOST_ID = "HOST"
 PLAYER_ID = "PLAYER"
 
+
+
+IS_CLIENT = "IS_CLIENT"
+IS_HOST = "IS_HOST"
+
 def clear():
     try:
         os.system('cls')
@@ -15,14 +20,7 @@ def clear():
 
 def print_hangman_title():
     print("""
-  _    _                                         
- | |  | |                                        
- | |__| | __ _ _ __   __ _ _ __ ___   __ _ _ __  
- |  __  |/ _` | '_ \ / _` | '_ ` _ \ / _` | '_ \ 
- | |  | | (_| | | | | (_| | | | | | | (_| | | | |
- |_|  |_|\__,_|_| |_|\__, |_| |_| |_|\__,_|_| |_|
-                      __/ |                      
-                     |___/                       
+    Hangman :D    
     """)
 
 def print_menu():
