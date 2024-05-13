@@ -4,7 +4,6 @@ from utils import clear, print_hangman_title, print_menu, init_revealed_word
 from httpClientServer import * 
 
 
-current_turn = 0 # 0 being the host, 1 being the other
 
 class GameState:
     def __init__(self, player_name="anon", word_to_guess = "word") -> None:
@@ -13,9 +12,17 @@ class GameState:
         self.word_to_guess = word_to_guess 
         self.revealed_word = init_revealed_word(self.word_to_guess)
         self.revealed_chars = []
+        self.guesser = PLAYER_ID
 
     def set_player_name(self, player_name):
         self.player_name = player_name
+
+    def swap_guesser(self):
+        if self.guesser == HOST_ID :
+            self.guesser = PLAYER_ID
+        elif self.guesser == PLAYER_ID :
+            self.guesser = HOST_ID
+    
     
     def set_word_to_guess(self, word_to_guess): 
         self.word_to_guess = word_to_guess 
@@ -59,8 +66,6 @@ def main():
 
 
     if choice == 1 :
-        word_to_guess = input("> Enter the word to guess : ")
-        game_state.set_word_to_guess(word_to_guess)
         shared_data = {
             'game_state': game_state
         }

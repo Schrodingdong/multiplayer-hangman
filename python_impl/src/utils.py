@@ -3,6 +3,10 @@ import os
 MAX_TRIES = 6
 FORBIDDEN_CHARS = [' ', '\n']
 
+# IDs to identify the guesser
+HOST_ID = "HOST"
+PLAYER_ID = "PLAYER"
+
 def clear():
     os.system('cls')
 
@@ -89,6 +93,15 @@ def print_hanged_man(step):
     }
     print(hangman_stages.get(step, "Invalid step"))
     return hangman_stages.get(step, "Invalid step")
+
+def print_win_screen(playername, has_won):
+    print("\n\n========================================================")
+    if has_won:
+        print(f"{playername} won :D !")
+    else:
+        print(f"{playername} lost :((")
+    print("========================================================")
+
 
 def reveal_char_in_word(c, w, revealed_word):
     og_char_iter = iter(w)
