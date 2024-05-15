@@ -101,7 +101,6 @@ def print_win_screen(playername, has_won):
         print(f"{playername} won :D !")
     else:
         print(f"{playername} lost :((")
-    print("========================================================")
 
 
 def reveal_char_in_word(c, w, revealed_word):

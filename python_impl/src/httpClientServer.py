@@ -49,7 +49,10 @@ def client(shared_data) :
                         ))
                         syn_ack_response = await websocket.recv()
                         syn_ack_response = json.loads(syn_ack_response)
-                        host_details = json.loads(syn_ack_response["player_details"])
+                        host_details = PlayerDetails()
+                        host_details.set_player_details_from_dic(
+                            json.loads(syn_ack_response["player_details"])
+                        )
                         await websocket.send(json.dumps(
                             {
                                 "HDSHK": "ACK", 
@@ -58,11 +61,19 @@ def client(shared_data) :
                         )) # Connection established
                         is_connected = True
                         print(">> Successfuly connected !")
+                        # get oponnent details
+                        Hangman_game.set_oponnent_details(host_details)
+
                         # set him as the guesser in this game instance
                         if client_game_state.player_details.is_guesser :
-                            Hangman_game.set_guesser(client_game_state.player_details)
+                            guesser = client_game_state.player_details
+                            goose = host_details
                         else :
-                            Hangman_game.set_guesser(host_details)
+                            guesser = host_details
+                            goose = client_game_state.player_details
+                        Hangman_game.set_guesser(guesser)
+                        Hangman_game.set_goose(goose)
+
                     else:
                         # Init the game_state
                         await Hangman_game.init_game()
@@ -115,6 +126,7 @@ def server(shared_data):
                                 Hangman_game.set_guesser(guesser_details)
                             else :
                                 Hangman_game.set_guesser(server_game_state.guesser)
+                                Hangman_game.set_oponnent_details(guesser_details)
                             continue
                 else :
                     await Hangman_game.init_game()

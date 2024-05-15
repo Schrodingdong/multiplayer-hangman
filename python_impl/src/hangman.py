@@ -1,17 +1,48 @@
 from utils import *
 import asyncio
 import websockets
+import time
 import json
+
+class GameStatistics:
+    def __init__(self):
+        self.time_taken = 0
+        self.score = 0
+
+    def get_game_stats_dic(self):
+        return {
+            "time_taken": self.time_taken,
+            "score": self.score
+        }
+    def load_game_stats_from_dic(self, game_stats_dic) :
+        self.time_taken = game_stats_dic['time_taken']
+        self.score = game_stats_dic['score']
+    
+    def reset_game_stats(self):
+        self.time_taken = 0
+
+
+
+def print_game_stats(time_taken, player_details, oponnent_details):
+    print(f"""--------------------------------------------------------
+time spent : {round(time_taken, 2)}
+score :
+    your score = {player_details.score}
+    {oponnent_details.player_name} score = {oponnent_details.score}
+========================================================""")
+
 
 class PlayerDetails:
     def __init__(self, player_name = "", is_guesser = None) -> None:
         self.player_name = player_name
         self.is_guesser = is_guesser
+        self.score = 0
     
     def get_player_details_dic(self):
         return {
             "player_name": self.player_name,
-            "is_guesser": self.is_guesser
+            "is_guesser": self.is_guesser,
+            "score" : self.score
         }
     
     def set_player_details_from_dic(self, player_details):
@@ -19,6 +50,7 @@ class PlayerDetails:
             player_details = player_details.get_player_details_dic()
         self.player_name = player_details['player_name']
         self.is_guesser = player_details['is_guesser']
+        self.score = player_details['score']
     
     def set_as_guesser(self):
         self.is_guesser = True
@@ -33,13 +65,13 @@ class GameState:
         if player_details == None:
             raise Exception("Player detail should be provided")
         self.player_details = player_details
+        self.oponnent_details = PlayerDetails()
         self.tries = 0
         self.word_to_guess = word_to_guess 
         self.revealed_word = init_revealed_word(self.word_to_guess)
         self.revealed_chars = []
         self.guesser = PlayerDetails()
-        # self.guesser = PLAYER_ID
-        # self.guesser_name = "John Doe"
+        self.goose = PlayerDetails()
         if is_role == IS_CLIENT :
             self.is_client = True
             self.is_host = False
@@ -48,15 +80,13 @@ class GameState:
             self.is_client = False
         else :
             raise Exception("is_role param needs to be specified : IS_CLIENT or IS_HOST")
-    
-
-    # def swap_guesser(self):
-    #     if self.guesser == HOST_ID :
-    #         self.guesser = PLAYER_ID
-    #     elif self.guesser == PLAYER_ID :
-    #         self.guesser = HOST_ID
+   
     def set_guesser(self, guesser_details):
         self.guesser.set_player_details_from_dic(guesser_details)
+    def set_goose(self, goose_details):
+        self.goose.set_player_details_from_dic(goose_details)
+    def set_oponnent(self, oponnent_details):
+        self.oponnent_details.set_player_details_from_dic(oponnent_details)
     
     
     def set_word_to_guess(self, word_to_guess): 
@@ -90,9 +120,17 @@ class Hangman:
     def __init__(self, game_state, websocket) -> None:
         self.game_state = game_state
         self.websocket = websocket
+        self.game_stats = GameStatistics()
     
     def set_guesser(self, guesser_details):
         self.game_state.set_guesser(guesser_details.get_player_details_dic())
+
+    def set_goose(self, goose_details):
+        self.game_state.set_goose(goose_details.get_player_details_dic())
+
+    def set_oponnent_details(self, oponnent_details):
+        self.game_state.set_oponnent(oponnent_details.get_player_details_dic())
+
     
     async def init_game(self):
         websocket = self.websocket
@@ -119,7 +157,7 @@ class Hangman:
         websocket = self.websocket
         error = ""
         # Game Loop : 
-        print(self.game_state)
+        start_time = time.time()
         while self.game_state.tries < MAX_TRIES and self.game_state.revealed_word != self.game_state.word_to_guess:
             # Be the one to guess
             if self.game_state.guesser.player_name == self.game_state.player_details.player_name:
@@ -188,8 +226,41 @@ class Hangman:
                         "UPDATE_STATUS": "ACK"
                     }
                 )) 
+        
+        end_time = time.time()
+        time_taken = end_time - start_time
         has_won = (self.game_state.revealed_word == self.game_state.word_to_guess)
         print_win_screen(self.game_state.guesser.player_name, has_won)
+
+        # if you are the guesser 
+        if self.game_state.guesser.player_name == self.game_state.player_details.player_name:
+            # set game stats 
+            self.game_stats.time_taken = time_taken 
+            if has_won :
+                self.game_state.player_details.score += 1
+            self.game_stats.score = self.game_state.player_details.score
+            # send it to host
+            await websocket.send(json.dumps(
+                {
+                    "game_stats": json.dumps(self.game_stats.get_game_stats_dic()) 
+                }
+            )) 
+        else :
+            game_stats_response = await websocket.recv()
+            game_stats_response = json.loads(game_stats_response)['game_stats']
+            oponnent_stats = GameStatistics()
+            oponnent_stats.load_game_stats_from_dic(json.loads(game_stats_response))
+            self.game_state.oponnent_details.score = oponnent_stats.score
+            time_taken = oponnent_stats.time_taken
+
+        print_game_stats(
+            time_taken=time_taken,
+            player_details=self.game_state.player_details,
+            oponnent_details=self.game_state.oponnent_details
+        )
+
+
+
         print("\n")
 
     async def rematch(self):
